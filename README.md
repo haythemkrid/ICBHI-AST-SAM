@@ -1,6 +1,6 @@
 # Geometry-Aware Optimization for Respiratory Sound Classification (AST + SAM)
 
-[![arXiv](https://img.shields.io/badge/arXiv-2502.XXXXX-b31b1b.svg)](https://arxiv.org/abs/2512.22564)
+[![arXiv](https://img.shields.io/badge/arXiv-2502.22564-b31b1b.svg)](https://arxiv.org/abs/2512.22564)
 [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Paper-blue)](https://huggingface.co/papers/2512.22564)
 
 This repository contains the official PyTorch implementation of the paper: **"Geometry-Aware Optimization for Respiratory Sound Classification: Enhancing Sensitivity with SAM-Optimized Audio Spectrogram Transformers"**.
@@ -87,6 +87,7 @@ python evaluate.py --model_path ./checkpoints/best_model.pth
 
 
 The results presented in the paper were obtained using mixed-precision (FP16) inference on an NVIDIA Tesla L4 GPU. Due to hardware differences and the non-deterministic nature of some CUDA operations, slight variations (±0.5%) in Sensitivity/Specificity metrics may be observed when retraining from scratch or running on different hardware.
+
 
 
 
