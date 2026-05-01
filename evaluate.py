@@ -13,6 +13,7 @@ import gc
 # --- MODÜLER İMPORTLAR ---
 from src.dataset import ASTDataset
 from src.model import CustomAST
+import argparse
 
 def evaluate(args):
     # 1. AYARLAR
@@ -35,8 +36,11 @@ def evaluate(args):
     processor = ASTFeatureExtractor.from_pretrained("MIT/ast-finetuned-audioset-10-10-0.4593")
 
     
+    dl_kwargs = dict(batch_size=args.batch_size, num_workers=args.num_workers,
+                     pin_memory=(DEVICE.type == 'cuda') if args.pin_memory is None else args.pin_memory)
+
     test_dataset = ASTDataset(X_test, y_test, d_test, processor, train=False)
-    test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=False)
+    test_loader = DataLoader(test_dataset, shuffle=False, **dl_kwargs)
 
     
     print(f"📦 Model yükleniyor: {args.model_path}")
@@ -135,6 +139,9 @@ if __name__ == "__main__":
     
     parser.add_argument("--output_dir", type=str, default="./results", help="Directory to save figures")
     parser.add_argument("--batch_size", type=int, default=16, help="Batch size for evaluation")
+    parser.add_argument("--num_workers", type=int, default=4, help="Number of DataLoader workers")
+    parser.add_argument("--pin_memory", type=lambda x: x.lower() in ['true','1','yes'], default=None,
+                        help="Pin memory for DataLoader (true/false). Defaults to True on CUDA)")
     
     args = parser.parse_args()
     evaluate(args)

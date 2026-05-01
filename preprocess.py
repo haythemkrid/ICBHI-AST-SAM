@@ -1,17 +1,15 @@
 import os
+import json
+import argparse
 import numpy as np
 import pandas as pd
 import librosa
 from tqdm import tqdm
 
 
-DATA_DIR = "/kaggle/input/datasets/husninm/icbhi-2017-challenge/ICBHI_final_database"  
-SPLIT_FILE = "./data/ICBHI_Challenge_train_test.txt"
-OUTPUT_FILENAME = "icbhi_ast_16k_8s_metadata.npz"
-
-TARGET_SR = 16000 
-TARGET_DURATION = 8 
-TARGET_SAMPLES = TARGET_SR * TARGET_DURATION 
+TARGET_SR = 16000
+TARGET_DURATION = 8
+TARGET_SAMPLES = TARGET_SR * TARGET_DURATION
 
 
 DEVICE_MAP = {
@@ -42,9 +40,8 @@ def cyclic_padding(wav, target_len):
 
 def process_data():
     print("🚀 Begins")
-    
-    
-    split_df = pd.read_csv(SPLIT_FILE, sep='\t', names=['filename', 'set_type'])
+
+    split_df = pd.read_csv(args.split_file, sep='\t', names=['filename', 'set_type'])
     
     X_train, y_train, device_train = [], [], []
     X_test, y_test, device_test = [], [], []
@@ -56,8 +53,8 @@ def process_data():
         fname = row['filename']
         set_type = row['set_type'] 
         
-        wav_path = os.path.join(DATA_DIR, fname + '.wav')
-        txt_path = os.path.join(DATA_DIR, fname + '.txt')
+        wav_path = os.path.join(args.data_dir, fname + '.wav')
+        txt_path = os.path.join(args.data_dir, fname + '.txt')
         
         if not os.path.exists(wav_path) or not os.path.exists(txt_path):
             continue
@@ -125,11 +122,46 @@ def process_data():
     print(f"Train : {X_train.shape}, Test : {X_test.shape}")
     
     # Kaydet
-    np.savez(OUTPUT_FILENAME, 
+    np.savez(args.output, 
              X_train=X_train, y_train=y_train, device_train=device_train,
              X_test=X_test, y_test=y_test, device_test=device_test)
-    
-    print(f"✅ Saved: {OUTPUT_FILENAME}")
+
+    meta = {
+        'output': args.output,
+        'data_dir': args.data_dir,
+        'split_file': args.split_file,
+        'target_sr': TARGET_SR,
+        'target_duration': TARGET_DURATION,
+        'stats': stats
+    }
+    # Write a small metadata file next to the output
+    try:
+        with open(args.output + '.meta.json', 'w') as f:
+            json.dump(meta, f, indent=2)
+    except Exception:
+        pass
+
+    print(f"✅ Saved: {args.output}")
 
 if __name__ == "__main__":
-    process_data()
+    parser = argparse.ArgumentParser(description="Preprocess ICBHI data for AST model")
+    parser.add_argument("--data_dir", type=str, default="./data/ICBHI_final_database",
+                        help="Path to extracted ICBHI_final_database folder")
+    parser.add_argument("--split_file", type=str, default="./data/ICBHI_challenge_train_test.txt",
+                        help="Path to the official train/test split file")
+    parser.add_argument("--output", type=str, default="icbhi_ast_16k_8s_metadata.npz",
+                        help="Output .npz filename")
+    parser.add_argument("--force", action="store_true", help="Overwrite existing output file")
+
+    args = parser.parse_args()
+
+    if not os.path.exists(args.data_dir):
+        raise FileNotFoundError(f"Data directory not found: {args.data_dir}")
+
+    if not os.path.exists(args.split_file):
+        raise FileNotFoundError(f"Split file not found: {args.split_file}")
+
+    if os.path.exists(args.output) and not args.force:
+        print(f"Output file {args.output} already exists. Use --force to overwrite.")
+    else:
+        process_data()

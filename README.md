@@ -62,26 +62,50 @@ data/
 │   └── ... (920 files)
 └── ICBHI_challenge_train_test.txt
 ```
-1. Preprocessing
+1.  Preprocessing
 
 Run the preprocessing script to generate the spectrogram-ready .npz file. This applies Cyclic Padding to ensure all samples are fixed to 8 seconds without information loss.
 
+The preprocessing script now accepts CLI options for data locations and output. Example:
+
 ```bash
-python preprocess.py
+python preprocess.py --data_dir ./data/ICBHI_final_database \
+    --split_file ./data/ICBHI_challenge_train_test.txt \
+    --output icbhi_ast_16k_8s_metadata.npz
 ```
-2. Training
 
-Train the AST model using the SAM optimizer. The script automatically saves the best model based on the ICBHI Score (Average of Sensitivity and Specificity).
+If an output file already exists the script will refuse to overwrite it unless you pass `--force`.
+
+2.  Training
+
+Train the AST model using the SAM optimizer. The training script includes these improvements:
+
+- Mixed precision training with `torch.cuda.amp` (FP16) when a CUDA device is available.
+- Checkpointing with resume support. Checkpoints include model state, optimizer state, scaler state (when applicable), epoch and args.
+- DataLoader improvements via `--num_workers` and `--pin_memory` flags.
+
+Example training command with recommended options:
 
 ```bash
-python train.py --epochs 20 --batch_size 8 --lr 1e-5
+python train.py --data_path ./icbhi_ast_16k_8s_metadata.npz \
+    --checkpoint_dir ./checkpoints --epochs 20 --batch_size 8 --lr 1e-5 \
+    --num_workers 4 --pin_memory True
 ```
-3. Evaluation
 
-Evaluate the trained model on the official test set and generate the Confusion Matrix (Figure 2 in the paper).
+To resume from a saved checkpoint:
 
 ```bash
-python evaluate.py --model_path ./checkpoints/best_model.pth
+python train.py --resume best_model.pth --checkpoint_dir ./checkpoints
+```
+
+Checkpoints are saved as `best_model.pth` inside `--checkpoint_dir` and a `run_config.json` is written for reproducibility.
+
+3.  Evaluation
+
+Evaluate the trained model on the official test set and generate the Confusion Matrix (Figure 2 in the paper). The evaluation script supports `--num_workers` and `--pin_memory`.
+
+```bash
+python evaluate.py --model_path ./checkpoints/best_model.pth --batch_size 16
 ```
 ⚠️ Note on Reproducibility
 
