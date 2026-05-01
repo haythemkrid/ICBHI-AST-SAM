@@ -145,9 +145,9 @@ def process_data():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Preprocess ICBHI data for AST model")
-    parser.add_argument("--data_dir", type=str, default="./data/ICBHI_final_database",
+    parser.add_argument("--data_dir", type=str, default="/kaggle/input/datasets/husninm/icbhi-2017-challenge/ICBHI_final_database",
                         help="Path to extracted ICBHI_final_database folder")
-    parser.add_argument("--split_file", type=str, default="./data/ICBHI_challenge_train_test.txt",
+    parser.add_argument("--split_file", type=str, default="./data/ICBHI_Challenge_train_test.txt",
                         help="Path to the official train/test split file")
     parser.add_argument("--output", type=str, default="icbhi_ast_16k_8s_metadata.npz",
                         help="Output .npz filename")
