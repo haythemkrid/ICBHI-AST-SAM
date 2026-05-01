@@ -60,7 +60,14 @@ def train(args):
     optimizer = SAM(model.parameters(), base_optimizer, lr=args.lr, rho=0.05, weight_decay=1e-4)
     criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
 
-    scaler = torch.cuda.amp.GradScaler() if DEVICE.type == 'cuda' else None
+    # Disable AMP for P100 (weak float16 support on older GPUs)
+    use_amp = False
+    if DEVICE.type == 'cuda':
+        props = torch.cuda.get_device_properties(0)
+        # Enable AMP only for compute capability >= 7.0 (P100 is 6.0)
+        use_amp = props.major >= 7
+    
+    scaler = torch.amp.GradScaler('cuda') if use_amp else None
 
     # 4. EĞİTİM DÖNGÜSÜ
     print("🚀 Train begins")
@@ -96,8 +103,8 @@ def train(args):
             inputs, labels = inputs.to(DEVICE), labels.to(DEVICE)
 
             # --- Forward + SAM steps with optional AMP ---
-            if scaler is not None:
-                with torch.cuda.amp.autocast():
+            if use_amp:
+                with torch.amp.autocast('cuda'):
                     logits = model(inputs)
                     loss = criterion(logits, labels)
                 scaler.scale(loss).backward()
@@ -106,7 +113,7 @@ def train(args):
                 optimizer.first_step(zero_grad=True)
 
                 # second forward
-                with torch.cuda.amp.autocast():
+                with torch.amp.autocast('cuda'):
                     logits2 = model(inputs)
                     loss2 = criterion(logits2, labels)
                 scaler.scale(loss2).backward()
